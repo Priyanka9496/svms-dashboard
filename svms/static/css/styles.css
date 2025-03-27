@@ -1,0 +1,142 @@
+/* 🌐 Global Styles */
+body {
+    background-color: #f8f9fa;
+    font-family: 'Arial', sans-serif;
+}
+
+/* 📦 Container */
+.container,
+.container-fluid {
+    margin-top: 20px;
+}
+
+/* 🧩 Cards */
+.card {
+    text-align: center;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
+}
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+.card-header {
+    font-weight: bold;
+    font-size: 1rem;
+}
+.card-title {
+    font-size: 1.4rem;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 0.4rem 0.8rem;
+    border-radius: 50px;
+    display: inline-block;
+    margin-top: 0.2rem;
+}
+
+/* 🎨 Gradient Variants */
+.bg-gradient-danger {
+    background: linear-gradient(135deg, #ff4e50, #f9d423);
+}
+.bg-gradient-success {
+    background: linear-gradient(135deg, #11998e, #38ef7d);
+}
+.bg-gradient-warning {
+    background: linear-gradient(135deg, #f7971e, #ffd200);
+}
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #007bff, #00c6ff);
+}
+.bg-gradient-secondary {
+    background: linear-gradient(135deg, #6c757d, #adb5bd);
+}
+.bg-gradient-dark {
+    background: linear-gradient(135deg, #343a40, #495057);
+}
+
+/* 🧭 Navbar */
+.navbar {
+    background-color: #343a40;
+}
+.navbar-brand {
+    color: white;
+    font-weight: bold;
+}
+.navbar-brand:hover {
+    color: #ffc107;
+}
+.center-navbar {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+/* 🛠 Table */
+.table {
+    font-size: 0.95rem;
+    table-layout: fixed;
+}
+.table td,
+.table th {
+    max-width: 140px;
+    min-width: 80px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+    vertical-align: middle;
+    padding: 0.5rem 0.6rem;
+}
+.table-hover tbody tr:hover {
+    background-color: #f1f1f1;
+}
+.table-striped tbody tr:nth-child(odd) {
+    background-color: #fafafa;
+}
+.table-responsive-sm {
+    overflow-x: auto;
+}
+
+/* 🔘 Buttons & Pagination */
+.btn {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.9rem;
+}
+.pagination .page-link {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.9rem;
+}
+
+/* 📱 Mobile Optimization */
+@media (max-width: 768px) {
+    h2,
+    .dashboard-title {
+        font-size: 1.3rem;
+    }
+    .card-title {
+        font-size: 1rem;
+    }
+    .table {
+        font-size: 0.85rem;
+    }
+}
+
+/* 🎯 Dashboard Title */
+.dashboard-title {
+    font-size: 2rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    color: #343a40;
+}
+
+/* 🔴 Custom Light Red */
+.bg-light-red {
+    background-color: #FADBD8 !important;
+    color: #7B241C;
+    border-color: #E57373 !important;
+}
+#scanProgressBar {
+    transition: width 0.4s ease-in-out;
+    font-weight: bold;
+}

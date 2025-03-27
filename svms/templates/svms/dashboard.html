@@ -1,0 +1,394 @@
+{% extends 'svms/base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="container-fluid mt-4 px-3">
+    <h2 class="dashboard-title text-center">🔐 Security Vulnerability Management Dashboard</h2>
+
+    <!-- Start Scan Button -->
+    <div class="text-center mb-4">
+        <button class="btn btn-success" onclick="startScan()">Start New Scan</button>
+        <div class="progress mt-3 mx-auto" style="width: 50%; height: 20px; display: none;" id="scanProgressWrapper">
+            <div class="progress-bar progress-bar-striped progress-bar-animated bg-info"
+                id="scanProgressBar" role="progressbar" style="width: 0%;">0%</div>
+        </div>
+    </div>
+
+    <!-- Export Buttons -->
+    <div class="text-end mb-3 d-print-none">
+        <button class="btn btn-outline-primary btn-sm me-2" onclick="exportCSV()">Export CSV</button>
+        <button class="btn btn-outline-danger btn-sm" onclick="window.print()">Export PDF</button>
+    </div>
+
+    <!-- Severity Cards -->
+    <div class="row">
+        <div class="col-sm-6 col-md-4 col-lg-2 mb-3">
+            <div class="card text-white bg-gradient-primary severity-card" data-severity="All">
+                <div class="card-header">All</div>
+                <div class="card-body">
+                    <h5 class="card-title">
+                        {{ severity_counts.Informational|default:0|add:severity_counts.Low|default:0|add:severity_counts.Medium|default:0|add:severity_counts.High|default:0|add:severity_counts.Critical|default:0 }}
+                    </h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-4 col-lg-2 mb-3">
+            <div class="card text-white bg-gradient-secondary severity-card" data-severity="Informational">
+                <div class="card-header">Informational</div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ severity_counts.Informational }}</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-4 col-lg-2 mb-3">
+            <div class="card text-white bg-gradient-success severity-card" data-severity="Low">
+                <div class="card-header">Low</div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ severity_counts.Low }}</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-4 col-lg-2 mb-3">
+            <div class="card text-white bg-gradient-warning severity-card" data-severity="Medium">
+                <div class="card-header">Medium</div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ severity_counts.Medium }}</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-4 col-lg-2 mb-3">
+            <div class="card text-white bg-gradient-danger severity-card" data-severity="High">
+                <div class="card-header">High</div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ severity_counts.High }}</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-4 col-lg-2 mb-3">
+            <div class="card text-white bg-gradient-dark severity-card" data-severity="Critical">
+                <div class="card-header">Critical</div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ severity_counts.Critical }}</h5>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vulnerabilities Table -->
+    <h3 class="mt-5">Vulnerabilities (<span id="selectedSeverity">All</span>)</h3>
+    <div class="table-responsive-sm">
+        <table class="table table-bordered table-sm text-nowrap table-hover table-striped">
+            <thead>
+                <tr>
+                    <th>Name </th>
+                    <th>Type </th>
+                    <th>Severity </th>
+                    <th>Detected At </th>
+                    <th>Assigned To</th>
+                </tr>
+            </thead>
+            <tbody id="vulnerabilityTableBody">
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <nav>
+        <ul class="pagination justify-content-center">
+            <li class="page-item"><a class="page-link" href="#" onclick="changePage('prev')">Previous</a></li>
+            <li class="page-item disabled"><a class="page-link">Page <span id="currentPage">1</span> of <span id="totalPages">1</span></a></li>
+            <li class="page-item"><a class="page-link" href="#" onclick="changePage('next')">Next</a></li>
+        </ul>
+    </nav>
+</div>
+
+<script>
+    let selectedVulnId = null;
+
+    document.addEventListener("DOMContentLoaded", function () {
+        if (localStorage.getItem("scanCompleted") === "true") {
+            document.getElementById("scanProgressWrapper").style.display = "block";
+            updateProgressBar(100);
+        } else if (localStorage.getItem("zapScanId")) {
+            document.getElementById("scanProgressWrapper").style.display = "block";
+            pollScanStatus(localStorage.getItem("zapScanId"));
+        }
+
+        document.querySelectorAll(".severity-card").forEach(card => {
+            card.addEventListener("click", function () {
+                const severity = this.getAttribute("data-severity");
+                document.getElementById("selectedSeverity").innerText = severity;
+                fetchVulnerabilities(severity, 1);
+            });
+        });
+
+        fetchVulnerabilities("All", 1);
+    });
+
+    function updateProgressBar(percent) {
+        const bar = document.getElementById("scanProgressBar");
+        if (bar) {
+            bar.style.width = percent + "%";
+            bar.innerText = percent + "%";
+        }
+    }
+    function exportCSV() {
+        const table = document.getElementById("vulnerabilityTable");
+    if (!table || !table.rows || table.rows.length === 0) {
+        alert("No data to export.");
+        return;
+    }
+        let csv = [];
+        for (let row of table.rows) {
+            let rowData = [];
+            for (let cell of row.cells) {
+                rowData.push(`"${cell.innerText.trim()}"`);
+            }
+            csv.push(rowData.join(","));
+        }
+        const csvContent = csv.join("\n");
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const link = document.createElement("a");
+        link.setAttribute("href", URL.createObjectURL(blob));
+        link.setAttribute("download", "vulnerabilities.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    function fetchVulnerabilities(severity, page = 1) {
+        const tbody = document.getElementById("vulnerabilityTableBody");
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center">Loading...</td></tr>`;
+
+        const url = (severity === "All")
+            ? `/api/vulnerabilities/?page=${page}`
+            : `/api/vulnerabilities/?severity=${severity}&page=${page}`;
+
+        fetch(url)
+            .then(res => res.json())
+            .then(data => {
+                const vulns = data.results || [];
+                if (!vulns.length) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="text-center">No vulnerabilities found.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = "";
+                vulns.forEach(vuln => {
+                    const assignedHtml = vuln.assigned_to
+                        ? vuln.assigned_to
+                        : `<a href='#' class='assign-link' data-vuln-id='${vuln.id}'>Unassigned</a>`;
+
+                    const row = document.createElement("tr");
+                    row.innerHTML = `
+                        <td><a href="#" class="vuln-detail-link" data-vuln-id="${vuln.id}">${vuln.name}</a></td>
+                        <td>${vuln.vuln_type}</td>
+                        <td>${vuln.severity}</td>
+                        <td>${new Date(vuln.detected_at).toLocaleString()}</td>
+                        <td>${assignedHtml}</td>
+                    `;
+
+                    tbody.appendChild(row);
+                });
+
+                attachAssignHandlers();
+                attachDetailHandlers();
+                updatePagination(data.count, page);
+            })
+            .catch(err => {
+                console.error("Fetch error:", err);
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">Failed to fetch data.</td></tr>`;
+            });
+    }
+
+    function attachAssignHandlers() {
+        document.querySelectorAll(".assign-link").forEach(link => {
+            link.addEventListener("click", function (e) {
+                e.preventDefault();
+                const vulnId = this.getAttribute("data-vuln-id");
+                selectedVulnId = vulnId;
+
+                fetch('/api/users/')
+                    .then(res => res.json())
+                    .then(users => {
+                        const userList = users.map(user => `<li><a href="#" class="user-choice" data-user-id="${user.id}">${user.username}</a></li>`).join('');
+                        const container = document.createElement("div");
+                        container.innerHTML = `<ul>${userList}</ul>`;
+
+                        const modalBody = document.createElement("div");
+                        modalBody.classList.add("modal", "fade");
+                        modalBody.innerHTML = `
+                            <div class="modal-dialog">
+                              <div class="modal-content">
+                                <div class="modal-header">
+                                  <h5 class="modal-title">Assign User</h5>
+                                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">${container.innerHTML}</div>
+                              </div>
+                            </div>`;
+
+                        document.body.appendChild(modalBody);
+                        const tempModal = new bootstrap.Modal(modalBody);
+                        tempModal.show();
+
+                        modalBody.querySelectorAll(".user-choice").forEach(userLink => {
+                            userLink.addEventListener("click", function (e) {
+                                e.preventDefault();
+                                const userId = this.getAttribute("data-user-id");
+
+                                fetch(`/api/vulnerabilities/${vulnId}/assign_user/`, {
+                                    method: "POST",
+                                    headers: {
+                                        "Content-Type": "application/json",
+                                        "X-CSRFToken": getCookie("csrftoken")
+                                    },
+                                    body: JSON.stringify({ user_id: userId })
+                                })
+                                .then(res => res.json())
+                                .then(() => {
+                                    alert("✅ User assigned!");
+                                    tempModal.hide();
+                                    location.reload();
+                                })
+                                .catch(err => {
+                                    console.error("Assignment error:", err);
+                                    alert("❌ Failed to assign user.");
+                                });
+                            });
+                        });
+                    });
+            });
+        });
+    }
+
+    function attachDetailHandlers() {
+        document.querySelectorAll(".vuln-detail-link").forEach(link => {
+            link.addEventListener("click", function (e) {
+                e.preventDefault();
+                const vulnId = this.getAttribute("data-vuln-id");
+
+                fetch(`/api/vulnerabilities/${vulnId}/`)
+                    .then(res => res.json())
+                    .then(data => {
+                        document.getElementById("vulnName").innerText = data.name;
+                        document.getElementById("vulnType").innerText = data.vuln_type;
+                        document.getElementById("vulnSeverity").innerText = data.severity;
+                        document.getElementById("vulnDetected").innerText = new Date(data.detected_at).toLocaleString();
+                        document.getElementById("vulnDescription").innerText = data.description || "No description available.";
+
+                        let solution = "";
+                        if (data.name.includes("User Agent Fuzzer")) {
+                            solution = `
+                            <ul>
+                                <li>✅ Standardize all responses across User-Agents unless explicitly needed (e.g., mobile layout).</li>
+                                <li>🔒 Avoid exposing debug info or verbose errors to crawlers like Googlebot.</li>
+                                <li>🧱 Consider using a Web Application Firewall (WAF) to block abnormal User-Agent behavior.</li>
+                                <li>🧼 Always sanitize and validate the User-Agent header — treat it as untrusted input.</li>
+                            </ul>`;
+                        } else if (data.name.includes("Server Leaks Version Information")) {
+                            solution = `
+                            <ul>
+                                <li>🔧 Configure your web/application server to suppress the "Server" HTTP response header.</li>
+                                <li>🧱 Use a reverse proxy (e.g., Nginx) to strip or override sensitive headers.</li>
+                                <li>🕵️‍♀️ Regularly scan and audit your headers to detect leaked information.</li>
+                                <li>🔐 Avoid disclosing version numbers of software components where not necessary.</li>
+                            </ul>`;
+                        } else if (data.name.includes("Cross-Domain JavaScript Source File Inclusion")) {
+                            solution = `
+                            <ul>
+                                <li>🔒 Avoid including JavaScript files from untrusted third-party domains.</li>
+                                <li>🧪 Use Subresource Integrity (SRI) to validate third-party script content.</li>
+                                <li>⚙️ Implement a Content Security Policy (CSP) to restrict allowed script sources.</li>
+                            </ul>`;
+                        } else if (data.name.includes("Cookie No HttpOnly Flag")) {
+                            solution = `
+                            <ul>
+                                <li>🔐 Set the <code>HttpOnly</code> flag on all session cookies to prevent JavaScript access.</li>
+                                <li>🛡️ Combine <code>HttpOnly</code> with <code>Secure</code> and <code>SameSite</code> for maximum protection.</li>
+                                <li>🔍 Review cookie handling and ensure flags are properly set at creation time.</li>
+                            </ul>`;
+                        } else if (data.name.includes("Content Security Policy (CSP) Header Not Set")) {
+                            solution = `
+                            <ul>
+                                <li>🛡️ Implement a strict CSP header (e.g. <code>Content-Security-Policy: default-src 'self'</code>).</li>
+                                <li>🧪 Test your policy using browser dev tools and CSP evaluation tools.</li>
+                                <li>🚫 Avoid using wildcards (<code>*</code>) in CSP rules to maintain security.</li>
+                            </ul>`;
+                        } else if (data.name.includes("SQL Injection - SQLite") || data.name.includes("SQL Injection - Login Bypass")) {
+                            solution = `
+                            <ul>
+                                <li>🔒 Always use parameterized queries or prepared statements.</li>
+                                <li>🚫 Never concatenate or interpolate user input directly into SQL strings.</li>
+                                <li>🧪 Use ORM frameworks which abstract SQL construction safely.</li>
+                                <li>🛡️ Implement input validation and allow-lists for user-submitted data.</li>
+                            </ul>`;
+                        } else if (data.name.includes("Remote Code Execution")) {
+                            solution = `
+                            <ul>
+                                <li>❌ Never pass user input to functions like <code>eval()</code>, <code>exec()</code>, <code>system()</code>, etc.</li>
+                                <li>✅ Use secure APIs and sandboxing where dynamic code execution is necessary.</li>
+                                <li>🔍 Audit all inputs that reach server-side command execution contexts.</li>
+                                <li>🧱 Apply runtime security controls and monitoring for unexpected behavior.</li>
+                            </ul>`;
+                        } else {
+                            solution = "No suggested solution available for this vulnerability.";
+                        }
+                        document.getElementById("vulnSolution").innerHTML = solution;
+
+                        new bootstrap.Modal(document.getElementById("vulnDetailsModal")).show();
+                    })
+                    .catch(err => {
+                        console.error("Error fetching details:", err);
+                        alert("❌ Failed to fetch vulnerability details.");
+                    });
+            });
+        });
+    }
+
+    function updatePagination(totalCount, currentPage) {
+        const totalPages = Math.ceil(totalCount / 8);
+        document.getElementById("currentPage").innerText = currentPage;
+        document.getElementById("totalPages").innerText = totalPages;
+
+        document.querySelector(".page-link[onclick*='prev']").parentElement.classList.toggle("disabled", currentPage <= 1);
+        document.querySelector(".page-link[onclick*='next']").parentElement.classList.toggle("disabled", currentPage >= totalPages);
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+
+<!-- Vulnerability Details Modal -->
+<div class="modal fade" id="vulnDetailsModal" tabindex="-1" aria-labelledby="vulnDetailsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="vulnDetailsModalLabel">Vulnerability Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <h5 id="vulnName"></h5>
+        <p><strong>Type:</strong> <span id="vulnType"></span></p>
+        <p><strong>Severity:</strong> <span id="vulnSeverity"></span></p>
+        <p><strong>Detected At:</strong> <span id="vulnDetected"></span></p>
+        <p><strong>Description:</strong></p>
+        <p id="vulnDescription" class="mb-2"></p>
+        <p><strong>Recommended Solution:</strong></p>
+        <div id="vulnSolution" class="mb-2"></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
