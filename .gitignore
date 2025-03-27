@@ -6,3 +6,6 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+logs/django.log
+*.pyc
+__pycache__/
