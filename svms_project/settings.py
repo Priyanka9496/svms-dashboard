@@ -89,9 +89,9 @@ WSGI_APPLICATION = 'svms_project.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'svms_db',
-        'USER': 'svms_user',
-        'PASSWORD': 'password',
+        'NAME': config("DB_NAME"),
+        'USER': config('DB_USER'),
+        'PASSWORD': config('DB_PASSWORD'),
         'HOST': 'localhost',
         'PORT': '5432',
     }
