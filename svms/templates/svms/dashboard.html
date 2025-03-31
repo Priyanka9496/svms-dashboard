@@ -103,6 +103,8 @@
 
 <script>
     let selectedVulnId = null;
+    let currentPage = 1;
+    let currentSeverity = "All";
 
     document.addEventListener("DOMContentLoaded", function () {
         if (localStorage.getItem("scanCompleted") === "true") {
@@ -131,6 +133,25 @@
             bar.innerText = percent + "%";
         }
     }
+    function pollScanStatus(scanId) {
+        const interval = setInterval(() => {
+            fetch(`/zap_progress_status?scanId=${scanId}`)
+                .then(res => res.json())
+                .then(data => {
+                    const percent = parseInt(data.status);
+                    updateProgressBar(percent);
+                    if (percent >= 100) {
+                        clearInterval(interval);
+                        localStorage.setItem("scanCompleted", "true");
+                        setTimeout(() => location.reload(), 2000); // Auto-refresh after done
+                    }
+                })
+                .catch(err => {
+                    console.error("Scan status error:", err);
+                    clearInterval(interval);
+                });
+        }, 3000);
+    }
     function exportCSV() {
         const table = document.getElementById("vulnerabilityTable");
     if (!table || !table.rows || table.rows.length === 0) {
@@ -156,6 +177,8 @@
     }
 
     function fetchVulnerabilities(severity, page = 1) {
+        currentSeverity = severity;
+        currentPage = page;
         const tbody = document.getElementById("vulnerabilityTableBody");
         tbody.innerHTML = `<tr><td colspan="5" class="text-center">Loading...</td></tr>`;
 
@@ -367,6 +390,35 @@
             }
         }
         return cookieValue;
+    }
+    function startScan() {
+        fetch('/start_scan/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({})
+        })
+    .then(res => res.json())
+        .then(data => {
+        if (data.zap_scan_id) {
+            localStorage.setItem("zapScanId", data.zap_scan_id);
+            document.getElementById("scanProgressWrapper").style.display = "block";
+            pollScanStatus(data.zap_scan_id);
+        } else {
+            alert("Scan triggered, but no scan ID returned.");
+        }
+        })
+    .catch(err => {
+        console.error("Error:", err);
+        alert("❌ Failed to start scan.");
+        });
+    }
+    function changePage(direction) {
+        if (direction === 'next') currentPage++;
+        if (direction === 'prev' && currentPage > 1) currentPage--;
+        fetchVulnerabilities(currentSeverity, currentPage);
     }
 </script>
 

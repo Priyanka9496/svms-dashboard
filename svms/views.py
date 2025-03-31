@@ -51,33 +51,60 @@ class ScanViewSet(viewsets.ModelViewSet):
         spider_url = f"{ZAP_BASE_URL}/JSON/spider/action/scan/?apikey={API_KEY}&url={TARGET_URL}"
         print("zap scan started!")
         response = requests.get(spider_url)
-        print(response.status_code)
+        print("zap spider response code",response.status_code)
         if response.status_code == 200:
             return response.json().get("scan")
         return None
 
     @action(detail=False, methods=['post'])
     def start_scan(self, request):
+        print("🔥 start_scan endpoint hit!")
+
         # Step 1: Create Scan Record
-        print("start_scan endpoint HIT")
         scan = Scan.objects.create(scan_type="SQLI", status="Running")
         print(f"📌 New scan created: ID={scan.id}")
 
-        # Step 2: Run Spider First
-        spider_id = self.run_zap_spider()
-        if not spider_id:
+        # Step 2: Run Spider
+        spider_url = f"{ZAP_BASE_URL}/JSON/spider/action/scan/?apikey={API_KEY}&url={TARGET_URL}"
+        spider_response = requests.get(spider_url)
+
+        if spider_response.status_code != 200:
             scan.status = "Failed"
-            scan.result = "Failed to start spider."
+            scan.result = "Spider failed to start"
             scan.save()
-            print('Spidering failed!')
-            return JsonResponse({"error": "Spidering failed!"}, status=500)
+            return JsonResponse({"error": "Spidering failed"}, status=500)
 
-        # Step 3: Wait for Spider to Complete
-        time.sleep(2)  # Give some time for crawling
+        spider_id = spider_response.json().get("scan")
+        print(f"🕷️ Spider started: ID={spider_id}")
 
-        # Step 4: Run Active Scan
-        zap_scan_url = f"{ZAP_BASE_URL}/JSON/ascan/action/scan/?apikey={API_KEY}&url={TARGET_URL}"
+        # Step 3: Wait for spider to finish
+        while True:
+            status_resp = requests.get(
+                f"{ZAP_BASE_URL}/JSON/spider/view/status/?apikey={API_KEY}&scanId={spider_id}"
+            )
+            spider_status = int(status_resp.json().get("status", 0))
+            print(f"🕷️ Spider progress: {spider_status}%")
+            if spider_status >= 100:
+                print("✅ Spidering complete.")
+                break
+            time.sleep(2)
+
+        # Step 4: Seed URL into ZAP site tree to avoid "URL Not Found"
+        access_url = f"{ZAP_BASE_URL}/JSON/core/action/accessUrl/?apikey={API_KEY}&url={TARGET_URL}&followRedirects=true"
+        requests.get(access_url)
+        print("🌱 ZAP site tree seeded with accessUrl")
+        site_tree_url = f"{ZAP_BASE_URL}/JSON/core/view/sites/?apikey={API_KEY}"
+        tree_response = requests.get(site_tree_url)
+        print("📋 ZAP Site Tree:", json.dumps(tree_response.json(), indent=2))
+        time.sleep(2)  # Small buffer
+
+        # Step 5: Start Active Scan
+        zap_scan_url = (
+            f"{ZAP_BASE_URL}/JSON/ascan/action/scan/?apikey={API_KEY}"
+            f"&url={TARGET_URL}&recurse=true&inScopeOnly=false"
+        )
         response = requests.get(zap_scan_url)
+        print("⚡ Active scan response:", response.status_code, response.text)
 
         if response.status_code != 200:
             scan.status = "Failed"
@@ -85,14 +112,32 @@ class ScanViewSet(viewsets.ModelViewSet):
             scan.save()
             return JsonResponse({"error": "Failed to start scan", "details": response.text}, status=500)
 
-        zap_scan_id = response.json().get("scan")
-        if not zap_scan_id:
-            scan.status = "Failed"
-            scan.result = "No scan ID returned by ZAP"
-            scan.save()
-            return JsonResponse({"error": "Scan ID not received from ZAP"}, status=500)
+        try:
+            zap_response_json = response.json()
+            zap_scan_id = zap_response_json.get("scan")
 
-        print("📤 Sending scan ID to Celery:", scan.id)
+            if not zap_scan_id:
+                print("❌ ZAP response (no scan ID):", zap_response_json)
+                scan.status = "Failed"
+                scan.result = zap_response_json.get("message", "Unknown error")
+                scan.save()
+                return JsonResponse({
+                    "error": "No scan ID returned",
+                    "zap_response": zap_response_json
+                }, status=500)
+
+        except Exception as e:
+            print("❌ Failed to parse ZAP response:", str(e))
+            scan.status = "Failed"
+            scan.result = "Invalid JSON from ZAP"
+            scan.save()
+            return JsonResponse({
+                "error": "Invalid response from ZAP",
+                "details": str(e),
+                "response": response.text
+            }, status=500)
+
+        print(f"🚀 Active scan started: ZAP Scan ID = {zap_scan_id}")
         fetch_zap_results_task.delay(scan.id)
 
         return JsonResponse({

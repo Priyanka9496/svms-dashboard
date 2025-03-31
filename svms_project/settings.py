@@ -30,7 +30,7 @@ SECRET_KEY = 'django-insecure-m9x3na5er+n4pp)^sgmhq3p()3rb9)hxfo^vm^r%a(4%7hkv&o
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost','127.0.0.1', '192.168.1.174']
+ALLOWED_HOSTS = ['localhost','127.0.0.1', '192.168.1.174','192.168.1.183']
 
 class DisableCSRF(object):
     def process_request(self, request):

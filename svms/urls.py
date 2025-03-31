@@ -24,7 +24,7 @@ urlpatterns = [
     path('robots.txt', robots_txt, name='robots_txt'),
     path('sitemap.xml', sitemap_xml, name='sitemap_xml'),
     path("zap/ascan/status/", zap_status_proxy),
-    path("zap/scan_status/", zap_progress_status, name='zap_progress_status'),
+    path("zap_progress_status/", zap_progress_status, name='zap_progress_status'),
     path("api/users/", list_users, name="list_users"),
     path("api/vulnerabilities/<int:vuln_id>/assign_user/", assign_user_to_vulnerability, name="assign_user"),
 ]
