@@ -1,447 +1,383 @@
-{% extends 'svms/base.html' %}
-{% block title %}Dashboard{% endblock %}
-{% block content %}
-<div class="container-fluid mt-4 px-3">
-    <h2 class="dashboard-title text-center">🔐 Security Vulnerability Management Dashboard</h2>
-
-    <!-- Start Scan Button -->
-    <div class="text-center mb-4">
-        <button class="btn btn-success" onclick="startScan()">Start New Scan</button>
-        <div class="progress mt-3 mx-auto" style="width: 50%; height: 20px; display: none;" id="scanProgressWrapper">
-            <div class="progress-bar progress-bar-striped progress-bar-animated bg-info"
-                id="scanProgressBar" role="progressbar" style="width: 0%;">0%</div>
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SecureTrack | Vulnerability Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Apple-like Modern UI */
+        body {
+            background: linear-gradient(135deg, #f6f7fb 0%, #e9ebf0 100%);
+            color: #222;
+            font-family: 'San Francisco', 'Segoe UI', 'Roboto', Arial, sans-serif;
+            min-height: 100vh;
+        }
+        .navbar {
+            background: rgba(255,255,255,0.92)!important;
+            box-shadow: 0 2px 24px 0 rgba(0,0,0,0.06);
+            border-bottom: 1px solid #e5e5e7;
+        }
+        .navbar-brand {
+            font-size: 1.7rem;
+            font-weight: 700;
+            color: #222 !important;
+            letter-spacing: 0.03em;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .navbar .btn-outline-light {
+            color: #111 !important;
+            border-color: #d1d2d6;
+            background: #f5f5f7;
+            border-radius: 22px;
+            border-width: 1.5px;
+            transition: background .23s, color .23s;
+        }
+        .navbar .btn-outline-light:hover,
+        .navbar .dropdown-toggle:focus {
+            background: #e5e5e7;
+            color: #0071e3 !important;
+            border-color: #0071e3;
+        }
+        .navbar .btn-warning {
+            background: #0071e3;
+            color: #fff !important;
+            border: none;
+            border-radius: 22px;
+            font-weight: 600;
+            transition: background .2s;
+        }
+        .navbar .btn-warning:hover {
+            background: #0258b8;
+        }
+        .card {
+            background: rgba(255,255,255,0.86);
+            border-radius: 20px;
+            box-shadow: 0 2px 24px 0 rgba(0,0,0,0.05), 0 1.5px 6px 0 rgba(0,0,0,0.02);
+            border: 1.5px solid #e5e5e7;
+            transition: box-shadow .17s, transform .13s;
+            padding: 28px 22px;
+        }
+        .card:hover {
+            box-shadow: 0 6px 28px 0 rgba(0,0,0,0.10), 0 2px 8px 0 rgba(0,0,0,0.03);
+            transform: translateY(-2px) scale(1.012);
+        }
+        .badge-critical { background: #ff3b30; color: #fff; border-radius: 14px; font-weight: 500;}
+        .badge-high { background: #ff9500; color: #fff; border-radius: 14px; font-weight: 500;}
+        .badge-medium { background: #ffd60a; color: #222; border-radius: 14px; font-weight: 500;}
+        .badge-low { background: #32d74b; color: #222; border-radius: 14px; font-weight: 500;}
+        .table th, .table td {
+            color: #222;
+            background: transparent;
+            vertical-align: middle;
+        }
+        .table-hover tbody tr:hover td {
+            background: #f1f2f6;
+            transition: background .2s;
+        }
+        .table thead th {
+            border-bottom: 2px solid #d1d2d6;
+            font-size: 1rem;
+            letter-spacing: 1px;
+        }
+        .filter-select, .form-select {
+            background-color: #f5f5f7;
+            color: #111;
+            border: 1px solid #d1d2d6;
+            border-radius: 10px;
+        }
+        .form-label {
+            color: #86868b;
+            font-weight: 500;
+            font-size: 1rem;
+        }
+        .btn-warning {
+            background: #0071e3;
+            color: #fff !important;
+            border: none;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            border-radius: 10px;
+        }
+        .btn-warning:hover {
+            background: #0258b8;
+        }
+        .btn-outline-light {
+            border-radius: 10px;
+        }
+        .btn-comments {
+        background: #e3e6ec;
+        color: #222c3a !important;
+        border: none;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: background .15s;
+        padding: 5px 15px;
+        }
+        .btn-comments:hover, .btn-comments:focus {
+        background: #1a2230;
+        color: #fff !important;
+        }
+        .pagination .page-link {
+            background: #f5f5f7;
+            border: none;
+            color: #0071e3;
+            border-radius: 9px;
+            margin: 0 2px;
+        }
+        .pagination .page-item.active .page-link {
+            background: #0071e3;
+            color: #fff;
+            font-weight: bold;
+        }
+        .modal-content {
+            background: #fff;
+            color: #222;
+            border-radius: 18px;
+            border: 1.5px solid #d1d2d6;
+            box-shadow: 0 8px 32px 0 rgba(31,38,135,0.11);
+        }
+        .modal-header {
+            border-bottom: 1.5px solid #e5e5e7;
+        }
+        .modal-title {
+            color: #0071e3;
+            font-weight: bold;
+        }
+        .rounded-circle {
+            box-shadow: 0 4px 18px 0 rgba(0,113,227,0.08);
+        }
+        .light-mode {
+            background: #fff !important;
+            color: #222 !important;
+        }
+        .light-mode .navbar,
+        .light-mode .card,
+        .light-mode .table th,
+        .light-mode .table td,
+        .light-mode .modal-content {
+            background: #fff !important;
+            color: #222 !important;
+        }
+        .light-mode .form-label {
+            color: #86868b;
+        }
+        .light-mode .filter-select,
+        .light-mode .form-select {
+            background: #f5f5f7;
+            color: #222;
+            border-color: #d1d2d6;
+        }
+        .light-mode .pagination .page-link {
+            background: #f5f5f7;
+            color: #0071e3;
+        }
+        .light-mode .pagination .page-item.active .page-link {
+            background: #0071e3;
+            color: #fff;
+        }
+        ::-webkit-scrollbar {
+            width: 10px;
+            background: #f5f5f7;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #e5e5e7;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-light">
+  <div class="container-fluid d-flex justify-content-between align-items-center">
+    <a class="navbar-brand fw-bold" href="/api/securetrack/dashboard"><i class="bi bi-shield-lock"></i> SecureTrack</a>
+    <div class="d-flex align-items-center gap-3">
+      {% if user.is_authenticated %}
+        <a href="#" class="text-dark position-relative">
+          <i class="bi bi-chat-dots fs-5"></i>
+        </a>
+        <a href="#" class="text-dark position-relative">
+          <i class="bi bi-bell fs-5"></i>
+          <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle">
+            <span class="visually-hidden">New alerts</span>
+          </span>
+        </a>
+        <button class="btn btn-outline-light btn-sm" onclick="document.body.classList.toggle('light-mode')">🌙</button>
+        <div class="dropdown">
+          <button class="btn btn-outline-light dropdown-toggle btn-sm" type="button" id="reportsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-bar-chart-fill"></i> Reports
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="reportsDropdown">
+            <li><a class="dropdown-item" href="{% url 'export-csv' %}">📥 Download CSV</a></li>
+            <li><a class="dropdown-item" href="{% url 'export-pdf' %}">📤 Export PDF</a></li>
+            <li><a class="dropdown-item" href="{% url 'schedule-report' %}">📅 Schedule Report</a></li>
+            <li><a class="dropdown-item" href="{% url 'audit-log' %}">🔐 View Audit Logs</a></li>
+          </ul>
         </div>
+        <div class="ms-3">
+          <a href="#" data-bs-toggle="modal" data-bs-target="#profileModal">
+            {% if user.userprofile.avatar %}
+              <img src="{{ user.userprofile.avatar.url }}" alt="Avatar" width="52" height="52" class="rounded-circle border border-light">
+            {% else %}
+              <img src="{% static 'images/default-avatar.jpeg' %}" alt="Avatar" width="52" height="52" class="rounded-circle border border-light">
+            {% endif %}
+          </a>
+        </div>
+      {% else %}
+        <a href="{% url 'login' %}" class="btn btn-outline-light btn-sm me-2">Login</a>
+        <a href="{% url 'register' %}" class="btn btn-warning btn-sm">Register</a>
+      {% endif %}
     </div>
+  </div>
+</nav>
 
-    <!-- Export Buttons -->
-    <div class="text-end mb-3 d-print-none">
-        <button class="btn btn-outline-primary btn-sm me-2" onclick="exportCSV()">Export CSV</button>
-        <button class="btn btn-outline-danger btn-sm" onclick="window.print()">Export PDF</button>
+<!-- ... Profile and Edit Profile Modals - as in your original ... -->
+
+<div class="container mt-5">
+  <div class="row g-4">
+    <div class="col-md-4">
+      <!-- ... Severity Chart ... -->
     </div>
-
-    <!-- Severity Cards -->
-    <div class="row">
-        <div class="col-sm-6 col-md-4 col-lg-2 mb-3">
-            <div class="card text-white bg-gradient-primary severity-card" data-severity="All">
-                <div class="card-header">All</div>
-                <div class="card-body">
-                    <h5 class="card-title">
-                        {{ severity_counts.Informational|default:0|add:severity_counts.Low|default:0|add:severity_counts.Medium|default:0|add:severity_counts.High|default:0|add:severity_counts.Critical|default:0 }}
-                    </h5>
-                </div>
-            </div>
-        </div>
-        <div class="col-sm-6 col-md-4 col-lg-2 mb-3">
-            <div class="card text-white bg-gradient-secondary severity-card" data-severity="Informational">
-                <div class="card-header">Informational</div>
-                <div class="card-body">
-                    <h5 class="card-title">{{ severity_counts.Informational }}</h5>
-                </div>
-            </div>
-        </div>
-        <div class="col-sm-6 col-md-4 col-lg-2 mb-3">
-            <div class="card text-white bg-gradient-success severity-card" data-severity="Low">
-                <div class="card-header">Low</div>
-                <div class="card-body">
-                    <h5 class="card-title">{{ severity_counts.Low }}</h5>
-                </div>
-            </div>
-        </div>
-        <div class="col-sm-6 col-md-4 col-lg-2 mb-3">
-            <div class="card text-white bg-gradient-warning severity-card" data-severity="Medium">
-                <div class="card-header">Medium</div>
-                <div class="card-body">
-                    <h5 class="card-title">{{ severity_counts.Medium }}</h5>
-                </div>
-            </div>
-        </div>
-        <div class="col-sm-6 col-md-4 col-lg-2 mb-3">
-            <div class="card text-white bg-gradient-danger severity-card" data-severity="High">
-                <div class="card-header">High</div>
-                <div class="card-body">
-                    <h5 class="card-title">{{ severity_counts.High }}</h5>
-                </div>
-            </div>
-        </div>
-        <div class="col-sm-6 col-md-4 col-lg-2 mb-3">
-            <div class="card text-white bg-gradient-dark severity-card" data-severity="Critical">
-                <div class="card-header">Critical</div>
-                <div class="card-body">
-                    <h5 class="card-title">{{ severity_counts.Critical }}</h5>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Vulnerabilities Table -->
-    <h3 class="mt-5">Vulnerabilities (<span id="selectedSeverity">All</span>)</h3>
-    <div class="table-responsive-sm">
-        <table id="vulnerabilityTable" class="table table-bordered table-sm text-nowrap table-hover table-striped">
+    <div class="col-md-8">
+      <div class="card">
+        <!-- ... Filter Form ... -->
+        <div class="table-responsive rounded" style="min-height: 260px;">
+          <table class="table table-hover align-middle mb-0">
             <thead>
-                <tr>
-                    <th>Name </th>
-                    <th>Type </th>
-                    <th>Severity </th>
-                    <th>Detected At </th>
-                    <th>Assigned To</th>
-                </tr>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Severity</th>
+                <th>Detected At</th>
+                <th>Assigned To</th>
+                {% if user.userprofile.role in 'QA PM' %}<th>Status</th>{% endif %}
+                <th>Comments</th>
+              </tr>
             </thead>
-            <tbody id="vulnerabilityTableBody">
+            <tbody id="bug-table-body">
+                {% for bug in page_obj %}
+                    <tr>
+                        <td>{{ bug.id }}</td>
+                        <td>{{ bug.name }}</td>
+                        <td>{{ bug.vuln_type }}</td>
+                        <td>
+                          <span class="badge {% if bug.severity == 'Critical' %}badge-critical{% elif bug.severity == 'High' %}badge-high{% elif bug.severity == 'Medium' %}badge-medium{% elif bug.severity == 'Low' %}badge-low{% endif %}">{{ bug.severity }}</span>
+                        </td>
+                        <td>{{ bug.detected_at|date:"Y-m-d H:i A" }}</td>
+                        <td id="assigned-to-{{ bug.id }}">
+                            {% if user.userprofile.role in 'QA PM' %}
+                                {% if bug.assigned_to %}
+                                    {{ bug.assigned_to.username }}
+                                {% else %}
+                                    <a href="#" class="assign-link text-decoration-underline text-primary" data-bug-id="{{ bug.id }}">Unassigned</a>
+                                {% endif %}
+                            {% else %}
+                                {{ bug.assigned_to.username|default:"Unassigned" }}
+                            {% endif %}
+                        </td>
+                        {% if user.userprofile.role in 'QA PM' %}
+                        <td>
+                          <form method="post" action="{% url 'update-status' bug.id %}">
+                            {% csrf_token %}
+                            <select name="status" class="form-select form-select-sm">
+                              <option value="New" {% if bug.status == "New" %}selected{% endif %}>New</option>
+                              <option value="In Progress" {% if bug.status == "In Progress" %}selected{% endif %}>In Progress</option>
+                              <option value="Resolved" {% if bug.status == "Resolved" %}selected{% endif %}>Resolved</option>
+                            </select>
+                            <button type="submit" class="btn btn-sm btn-warning mt-1">Update</button>
+                          </form>
+                        </td>
+                        {% endif %}
+                        <td><a href="{% url 'vulnerability-detail' bug.id %}" class="btn btn-sm btn-comments">💬 View</a></td>
+                    </tr>
+                {% empty %}
+                <tr><td colspan="8">No vulnerabilities found.</td></tr>
+                {% endfor %}
             </tbody>
-        </table>
-    </div>
-
-    <!-- Pagination -->
-    <nav>
-        <ul class="pagination justify-content-center">
-            <li class="page-item"><a class="page-link" href="#" onclick="changePage('prev')">Previous</a></li>
-            <li class="page-item disabled"><a class="page-link">Page <span id="currentPage">1</span> of <span id="totalPages">1</span></a></li>
-            <li class="page-item"><a class="page-link" href="#" onclick="changePage('next')">Next</a></li>
-        </ul>
-    </nav>
-</div>
-
-<script>
-    let selectedVulnId = null;
-    let currentPage = 1;
-    let currentSeverity = "All";
-
-    document.addEventListener("DOMContentLoaded", function () {
-        if (localStorage.getItem("scanCompleted") === "true") {
-            document.getElementById("scanProgressWrapper").style.display = "block";
-            updateProgressBar(100);
-        } else if (localStorage.getItem("zapScanId")) {
-            document.getElementById("scanProgressWrapper").style.display = "block";
-            pollScanStatus(localStorage.getItem("zapScanId"));
-        }
-
-        document.querySelectorAll(".severity-card").forEach(card => {
-            card.addEventListener("click", function () {
-                const severity = this.getAttribute("data-severity");
-                document.getElementById("selectedSeverity").innerText = severity;
-                fetchVulnerabilities(severity, 1);
-            });
-        });
-
-        fetchVulnerabilities("All", 1);
-    });
-
-    function updateProgressBar(percent) {
-        const bar = document.getElementById("scanProgressBar");
-        if (bar) {
-            bar.style.width = percent + "%";
-            bar.innerText = percent + "%";
-        }
-    }
-    function pollScanStatus(scanId) {
-        const interval = setInterval(() => {
-            fetch(`/zap_progress_status?scanId=${scanId}`)
-                .then(res => res.json())
-                .then(data => {
-                    const percent = parseInt(data.status);
-                    updateProgressBar(percent);
-                    if (percent >= 100) {
-                        clearInterval(interval);
-                        localStorage.setItem("scanCompleted", "true");
-                        setTimeout(() => location.reload(), 2000); // Auto-refresh after done
-                    }
-                })
-                .catch(err => {
-                    console.error("Scan status error:", err);
-                    clearInterval(interval);
-                });
-        }, 3000);
-    }
-    function exportCSV() {
-        const table = document.getElementById("vulnerabilityTable");
-        const rows = table?.querySelectorAll("tbody tr");
-    if (!rows || rows.length === 0) {
-        alert("No data to export.");
-        return;
-    }
-        let csv = [];
-        for (let row of table.rows) {
-            let rowData = [];
-            for (let cell of row.cells) {
-                rowData.push(`"${cell.innerText.trim()}"`);
-            }
-            csv.push(rowData.join(","));
-        }
-        const csvContent = csv.join("\n");
-        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-        const link = document.createElement("a");
-        link.setAttribute("href", URL.createObjectURL(blob));
-        link.setAttribute("download", "vulnerabilities.csv");
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
-
-    function fetchVulnerabilities(severity, page = 1) {
-        currentSeverity = severity;
-        currentPage = page;
-        const tbody = document.getElementById("vulnerabilityTableBody");
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center">Loading...</td></tr>`;
-
-        const url = (severity === "All")
-            ? `/api/vulnerabilities/?page=${page}`
-            : `/api/vulnerabilities/?severity=${severity}&page=${page}`;
-
-        fetch(url)
-            .then(res => res.json())
-            .then(data => {
-                const vulns = data.results || [];
-                if (!vulns.length) {
-                    tbody.innerHTML = `<tr><td colspan="5" class="text-center">No vulnerabilities found.</td></tr>`;
-                    return;
-                }
-
-                tbody.innerHTML = "";
-                vulns.forEach(vuln => {
-                    const assignedHtml = vuln.assigned_to
-                        ? vuln.assigned_to
-                        : `<a href='#' class='assign-link' data-vuln-id='${vuln.id}'>Unassigned</a>`;
-
-                    const row = document.createElement("tr");
-                    row.innerHTML = `
-                        <td><a href="#" class="vuln-detail-link" data-vuln-id="${vuln.id}">${vuln.name}</a></td>
-                        <td>${vuln.vuln_type}</td>
-                        <td>${vuln.severity}</td>
-                        <td>${new Date(vuln.detected_at).toLocaleString()}</td>
-                        <td>${assignedHtml}</td>
-                    `;
-
-                    tbody.appendChild(row);
-                });
-
-                attachAssignHandlers();
-                attachDetailHandlers();
-                updatePagination(data.count, page);
-            })
-            .catch(err => {
-                console.error("Fetch error:", err);
-                tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">Failed to fetch data.</td></tr>`;
-            });
-    }
-
-    function attachAssignHandlers() {
-        document.querySelectorAll(".assign-link").forEach(link => {
-            link.addEventListener("click", function (e) {
-                e.preventDefault();
-                const vulnId = this.getAttribute("data-vuln-id");
-                selectedVulnId = vulnId;
-
-                fetch('/api/users/')
-                    .then(res => res.json())
-                    .then(users => {
-                        const userList = users.map(user => `<li><a href="#" class="user-choice" data-user-id="${user.id}">${user.username}</a></li>`).join('');
-                        const container = document.createElement("div");
-                        container.innerHTML = `<ul>${userList}</ul>`;
-
-                        const modalBody = document.createElement("div");
-                        modalBody.classList.add("modal", "fade");
-                        modalBody.innerHTML = `
-                            <div class="modal-dialog">
-                              <div class="modal-content">
-                                <div class="modal-header">
-                                  <h5 class="modal-title">Assign User</h5>
-                                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                </div>
-                                <div class="modal-body">${container.innerHTML}</div>
-                              </div>
-                            </div>`;
-
-                        document.body.appendChild(modalBody);
-                        const tempModal = new bootstrap.Modal(modalBody);
-                        tempModal.show();
-
-                        modalBody.querySelectorAll(".user-choice").forEach(userLink => {
-                            userLink.addEventListener("click", function (e) {
-                                e.preventDefault();
-                                const userId = this.getAttribute("data-user-id");
-
-                                fetch(`/api/vulnerabilities/${vulnId}/assign_user/`, {
-                                    method: "POST",
-                                    headers: {
-                                        "Content-Type": "application/json",
-                                        "X-CSRFToken": getCookie("csrftoken")
-                                    },
-                                    body: JSON.stringify({ user_id: userId })
-                                })
-                                .then(res => res.json())
-                                .then(() => {
-                                    alert("✅ User assigned!");
-                                    tempModal.hide();
-                                    location.reload();
-                                })
-                                .catch(err => {
-                                    console.error("Assignment error:", err);
-                                    alert("❌ Failed to assign user.");
-                                });
-                            });
-                        });
-                    });
-            });
-        });
-    }
-
-    function attachDetailHandlers() {
-        document.querySelectorAll(".vuln-detail-link").forEach(link => {
-            link.addEventListener("click", function (e) {
-                e.preventDefault();
-                const vulnId = this.getAttribute("data-vuln-id");
-
-                fetch(`/api/vulnerabilities/${vulnId}/`)
-                    .then(res => res.json())
-                    .then(data => {
-                        document.getElementById("vulnName").innerText = data.name;
-                        document.getElementById("vulnType").innerText = data.vuln_type;
-                        document.getElementById("vulnSeverity").innerText = data.severity;
-                        document.getElementById("vulnDetected").innerText = new Date(data.detected_at).toLocaleString();
-                        document.getElementById("vulnDescription").innerText = data.description || "No description available.";
-
-                        let solution = "";
-                        if (data.name.includes("User Agent Fuzzer")) {
-                            solution = `
-                            <ul>
-                                <li>✅ Standardize all responses across User-Agents unless explicitly needed (e.g., mobile layout).</li>
-                                <li>🔒 Avoid exposing debug info or verbose errors to crawlers like Googlebot.</li>
-                                <li>🧱 Consider using a Web Application Firewall (WAF) to block abnormal User-Agent behavior.</li>
-                                <li>🧼 Always sanitize and validate the User-Agent header — treat it as untrusted input.</li>
-                            </ul>`;
-                        } else if (data.name.includes("Server Leaks Version Information")) {
-                            solution = `
-                            <ul>
-                                <li>🔧 Configure your web/application server to suppress the "Server" HTTP response header.</li>
-                                <li>🧱 Use a reverse proxy (e.g., Nginx) to strip or override sensitive headers.</li>
-                                <li>🕵️‍♀️ Regularly scan and audit your headers to detect leaked information.</li>
-                                <li>🔐 Avoid disclosing version numbers of software components where not necessary.</li>
-                            </ul>`;
-                        } else if (data.name.includes("Cross-Domain JavaScript Source File Inclusion")) {
-                            solution = `
-                            <ul>
-                                <li>🔒 Avoid including JavaScript files from untrusted third-party domains.</li>
-                                <li>🧪 Use Subresource Integrity (SRI) to validate third-party script content.</li>
-                                <li>⚙️ Implement a Content Security Policy (CSP) to restrict allowed script sources.</li>
-                            </ul>`;
-                        } else if (data.name.includes("Cookie No HttpOnly Flag")) {
-                            solution = `
-                            <ul>
-                                <li>🔐 Set the <code>HttpOnly</code> flag on all session cookies to prevent JavaScript access.</li>
-                                <li>🛡️ Combine <code>HttpOnly</code> with <code>Secure</code> and <code>SameSite</code> for maximum protection.</li>
-                                <li>🔍 Review cookie handling and ensure flags are properly set at creation time.</li>
-                            </ul>`;
-                        } else if (data.name.includes("Content Security Policy (CSP) Header Not Set")) {
-                            solution = `
-                            <ul>
-                                <li>🛡️ Implement a strict CSP header (e.g. <code>Content-Security-Policy: default-src 'self'</code>).</li>
-                                <li>🧪 Test your policy using browser dev tools and CSP evaluation tools.</li>
-                                <li>🚫 Avoid using wildcards (<code>*</code>) in CSP rules to maintain security.</li>
-                            </ul>`;
-                        } else if (data.name.includes("SQL Injection - SQLite") || data.name.includes("SQL Injection - Login Bypass")) {
-                            solution = `
-                            <ul>
-                                <li>🔒 Always use parameterized queries or prepared statements.</li>
-                                <li>🚫 Never concatenate or interpolate user input directly into SQL strings.</li>
-                                <li>🧪 Use ORM frameworks which abstract SQL construction safely.</li>
-                                <li>🛡️ Implement input validation and allow-lists for user-submitted data.</li>
-                            </ul>`;
-                        } else if (data.name.includes("Remote Code Execution")) {
-                            solution = `
-                            <ul>
-                                <li>❌ Never pass user input to functions like <code>eval()</code>, <code>exec()</code>, <code>system()</code>, etc.</li>
-                                <li>✅ Use secure APIs and sandboxing where dynamic code execution is necessary.</li>
-                                <li>🔍 Audit all inputs that reach server-side command execution contexts.</li>
-                                <li>🧱 Apply runtime security controls and monitoring for unexpected behavior.</li>
-                            </ul>`;
-                        } else {
-                            solution = "No suggested solution available for this vulnerability.";
-                        }
-                        document.getElementById("vulnSolution").innerHTML = solution;
-
-                        new bootstrap.Modal(document.getElementById("vulnDetailsModal")).show();
-                    })
-                    .catch(err => {
-                        console.error("Error fetching details:", err);
-                        alert("❌ Failed to fetch vulnerability details.");
-                    });
-            });
-        });
-    }
-
-    function updatePagination(totalCount, currentPage) {
-        const totalPages = Math.ceil(totalCount / 8);
-        document.getElementById("currentPage").innerText = currentPage;
-        document.getElementById("totalPages").innerText = totalPages;
-
-        document.querySelector(".page-link[onclick*='prev']").parentElement.classList.toggle("disabled", currentPage <= 1);
-        document.querySelector(".page-link[onclick*='next']").parentElement.classList.toggle("disabled", currentPage >= totalPages);
-    }
-
-    function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
-                }
-            }
-        }
-        return cookieValue;
-    }
-    function startScan() {
-        fetch('/start_scan/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify({})
-        })
-    .then(res => res.json())
-        .then(data => {
-        if (data.zap_scan_id) {
-            localStorage.setItem("zapScanId", data.zap_scan_id);
-            document.getElementById("scanProgressWrapper").style.display = "block";
-            pollScanStatus(data.zap_scan_id);
-        } else {
-            alert("Scan triggered, but no scan ID returned.");
-        }
-        })
-    .catch(err => {
-        console.error("Error:", err);
-        alert("❌ Failed to start scan.");
-        });
-    }
-    function changePage(direction) {
-        if (direction === 'next') currentPage++;
-        if (direction === 'prev' && currentPage > 1) currentPage--;
-        fetchVulnerabilities(currentSeverity, currentPage);
-    }
-</script>
-
-<!-- Vulnerability Details Modal -->
-<div class="modal fade" id="vulnDetailsModal" tabindex="-1" aria-labelledby="vulnDetailsModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="vulnDetailsModalLabel">Vulnerability Details</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <h5 id="vulnName"></h5>
-        <p><strong>Type:</strong> <span id="vulnType"></span></p>
-        <p><strong>Severity:</strong> <span id="vulnSeverity"></span></p>
-        <p><strong>Detected At:</strong> <span id="vulnDetected"></span></p>
-        <p><strong>Description:</strong></p>
-        <p id="vulnDescription" class="mb-2"></p>
-        <p><strong>Recommended Solution:</strong></p>
-        <div id="vulnSolution" class="mb-2"></div>
+          </table>
+        </div>
+        <!-- Pagination (unchanged) -->
       </div>
     </div>
   </div>
 </div>
-{% endblock %}
+
+<!-- Assignment Modal (single, reused for all bugs) -->
+<div class="modal fade" id="assignModal" tabindex="-1" aria-labelledby="assignModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="assignModalLabel">Assign User</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <select class="form-select" id="assignUserSelect" required>
+            <option value="" disabled selected>Assign to...</option>
+            {% for assign_user in assignable_users %}
+                <option value="{{ assign_user.id }}">{{ assign_user.username }}</option>
+            {% endfor %}
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-warning" id="assignUserBtn">Assign</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+let selectedBugId = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // When clicking "Unassigned" link, open modal and set selectedBugId
+    document.querySelectorAll('.assign-link').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            selectedBugId = this.getAttribute('data-bug-id');
+            // Reset the select for each open
+            document.getElementById('assignUserSelect').selectedIndex = 0;
+            // Show the modal
+            var assignModal = new bootstrap.Modal(document.getElementById('assignModal'));
+            assignModal.show();
+        });
+    });
+
+    // Handle Assign in modal
+    document.getElementById('assignUserBtn').addEventListener('click', function() {
+        const userId = document.getElementById('assignUserSelect').value;
+        if (!userId || !selectedBugId) {
+            alert('Please select a user.');
+            return;
+        }
+
+        fetch(`/assign-bug/${selectedBugId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ assigned_to: userId })
+        })
+        .then(res => {
+            if (!res.ok) throw new Error('Assignment failed');
+            return res.json();
+        })
+        .then(data => {
+            // Update the table cell immediately
+            document.querySelector(`#assigned-to-${selectedBugId}`).innerHTML = data.assigned_to;
+            // Close the modal
+            const assignModal = bootstrap.Modal.getInstance(document.getElementById('assignModal'));
+            assignModal.hide();
+        })
+        .catch(error => {
+            alert('Failed to assign user.');
+        });
+    });
+});
+</script>
+</body>
+</html>

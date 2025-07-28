@@ -21,6 +21,8 @@ ZAP_BASE_URL = config("ZAP_BASE_URL")
 ZAP_API_KEY = config("ZAP_API_KEY")
 ZAP_TARGET_URL = config("ZAP_TARGET_URL")
 CELERY_BROKER_URL = config("CELERY_BROKER_URL")
+OPENAI_API_KEY = config("OPENAI_APIKEY")
+HUGGINGFACE_API_KEY = config("HUGGINGFACE_API_KEY")
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
@@ -46,6 +48,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'svms',
+    'securetrack',
     'rest_framework',
     'corsheaders',
     'django_filters',
@@ -134,7 +137,7 @@ USE_TZ = True
 
 # STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 STATIC_URL = "/static/"
-STATICFILES_DIRS = [os.path.join(BASE_DIR, "svms/static")]
+STATICFILES_DIRS = [os.path.join(BASE_DIR, "securetrack/static")]
 
 # CELERY Configuration
 CELERY_BROKER_URL = config("CELERY_BROKER_URL")
@@ -143,12 +146,19 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
-
+LOGIN_URL = 'login'
+# LOGIN_REDIRECT_URL = '/api/securetrack/request-profile/'
+LOGIN_REDIRECT_URL = 'securetrack-dashboard'
+LOGOUT_REDIRECT_URL = 'login'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+CSRF_FAILURE_VIEW = 'django.views.csrf.csrf_failure'
+MEDIA_URL = "/media/"
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
     ),
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',  # Ensures API returns JSON

@@ -18,7 +18,13 @@ class Vulnerability(models.Model):
         ('Critical', 'Critical'),
         ('General', 'General')
     ]
-
+    STATUS_CHOICES = [
+        ('New', 'New'),
+        ('In Progress', 'In Progress'),
+        ('QA Review', 'QA Review'),
+        ('Resolved', 'Resolved'),
+        ('Closed', 'Closed'),
+    ]
     name = models.CharField(max_length=255)
     description = models.TextField()
     severity = models.CharField(max_length=30, choices=severity_levels, default='Low')
@@ -26,6 +32,7 @@ class Vulnerability(models.Model):
     detected_at = models.DateTimeField(auto_now_add=True)
     assigned_to = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_vulnerabilities')
     scan = models.ForeignKey('Scan', on_delete=models.CASCADE, related_name='vulnerabilities', null=True, blank=True)
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='New')
 
     class Meta:
         ordering = ['-detected_at']

@@ -1,0 +1,649 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SecureTrack Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Apple-like Modern UI */
+        body {
+            background: linear-gradient(135deg, #f6f7fb 0%, #e9ebf0 100%);
+            color: #222;
+            font-family: 'San Francisco', 'Segoe UI', 'Roboto', Arial, sans-serif;
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: rgba(255,255,255,0.92)!important;
+            box-shadow: 0 2px 24px 0 rgba(0,0,0,0.06);
+            border-bottom: 1px solid #e5e5e7;
+        }
+        .navbar-brand {
+            font-size: 1.7rem;
+            font-weight: 700;
+            color: #222 !important;
+            letter-spacing: 0.03em;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .navbar .btn-outline-light {
+            color: #111 !important;
+            border-color: #d1d2d6;
+            background: #f5f5f7;
+            border-radius: 22px;
+            border-width: 1.5px;
+            transition: background .23s, color .23s;
+        }
+        .navbar .btn-outline-light:hover,
+        .navbar .dropdown-toggle:focus {
+            background: #e5e5e7;
+            color: #0071e3 !important;
+            border-color: #0071e3;
+        }
+        .navbar .btn-warning {
+            background: #0071e3;
+            color: #fff !important;
+            border: none;
+            border-radius: 22px;
+            font-weight: 600;
+            transition: background .2s;
+        }
+        .navbar .btn-warning:hover {
+            background: #0258b8;
+        }
+
+        /* Cards */
+        .card {
+            background: rgba(255,255,255,0.86);
+            border-radius: 20px;
+            box-shadow: 0 2px 24px 0 rgba(0,0,0,0.05), 0 1.5px 6px 0 rgba(0,0,0,0.02);
+            border: 1.5px solid #e5e5e7;
+            transition: box-shadow .17s, transform .13s;
+            padding: 28px 22px;
+        }
+        .card:hover {
+            box-shadow: 0 6px 28px 0 rgba(0,0,0,0.10), 0 2px 8px 0 rgba(0,0,0,0.03);
+            transform: translateY(-2px) scale(1.012);
+        }
+
+        /* Badges */
+        .badge-critical { background: #ff3b30; color: #fff; border-radius: 14px; font-weight: 500;}
+        .badge-high { background: #ff9500; color: #fff; border-radius: 14px; font-weight: 500;}
+        .badge-medium { background: #ffd60a; color: #222; border-radius: 14px; font-weight: 500;}
+        .badge-low { background: #32d74b; color: #222; border-radius: 14px; font-weight: 500;}
+
+        /* Table */
+        .table th, .table td {
+            color: #222;
+            background: transparent;
+            vertical-align: middle;
+        }
+        .table-hover tbody tr:hover td {
+            background: #f1f2f6;
+            transition: background .2s;
+        }
+        .table thead th {
+            border-bottom: 2px solid #d1d2d6;
+            font-size: 1rem;
+            letter-spacing: 1px;
+        }
+        /* Filter-selectors */
+        .filter-select, .form-select {
+            background-color: #f5f5f7;
+            color: #111;
+            border: 1px solid #d1d2d6;
+            border-radius: 10px;
+        }
+        .form-label {
+            color: #86868b;
+            font-weight: 500;
+            font-size: 1rem;
+        }
+        .btn-warning {
+            background: #0071e3;
+            color: #fff !important;
+            border: none;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            border-radius: 10px;
+        }
+        .btn-warning:hover {
+            background: #0258b8;
+        }
+        .btn-outline-light {
+            border-radius: 10px;
+        }
+        .btn-comments {
+        background: #e3e6ec;
+        color: #222c3a !important;
+        border: none;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: background .15s;
+        padding: 5px 15px;
+        }
+        .btn-comments:hover, .btn-comments:focus {
+        background: #1a2230;
+        color: #fff !important;
+        }
+        .pagination .page-link {
+            background: #f5f5f7;
+            border: none;
+            color: #0071e3;
+            border-radius: 9px;
+            margin: 0 2px;
+        }
+        .pagination .page-item.active .page-link {
+            background: #0071e3;
+            color: #fff;
+            font-weight: bold;
+        }
+        /* Modals */
+        .modal-content {
+            background: #fff;
+            color: #222;
+            border-radius: 18px;
+            border: 1.5px solid #d1d2d6;
+            box-shadow: 0 8px 32px 0 rgba(31,38,135,0.11);
+        }
+        .modal-header {
+            border-bottom: 1.5px solid #e5e5e7;
+        }
+        .modal-title {
+            color: #0071e3;
+            font-weight: bold;
+        }
+        .rounded-circle {
+            box-shadow: 0 4px 18px 0 rgba(0,113,227,0.08);
+        }
+        /* Light Mode (toggle) */
+        .light-mode {
+            background: #fff !important;
+            color: #222 !important;
+        }
+        .light-mode .navbar,
+        .light-mode .card,
+        .light-mode .table th,
+        .light-mode .table td,
+        .light-mode .modal-content {
+            background: #fff !important;
+            color: #222 !important;
+        }
+        .light-mode .form-label {
+            color: #86868b;
+        }
+        .light-mode .filter-select,
+        .light-mode .form-select {
+            background: #f5f5f7;
+            color: #222;
+            border-color: #d1d2d6;
+        }
+        .light-mode .pagination .page-link {
+            background: #f5f5f7;
+            color: #0071e3;
+        }
+        .light-mode .pagination .page-item.active .page-link {
+            background: #0071e3;
+            color: #fff;
+        }
+        ::-webkit-scrollbar {
+            width: 10px;
+            background: #f5f5f7;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #e5e5e7;
+            border-radius: 8px;
+        }
+        /* Floating Chatbot Button and Widget */
+        #floatingChatBtn {
+          position: fixed;
+          bottom: 32px;
+          right: 32px;
+          z-index: 1055;
+          border-radius: 50%;
+          width: 56px;
+          height: 56px;
+          font-size: 2rem;
+          background: #0d6efd;
+          color: white;
+          border: none;
+          box-shadow: 0 2px 16px rgba(0,0,0,0.25);
+          transition: background 0.2s;
+        }
+        #floatingChatBtn:hover { background: #084298; }
+
+        #floatingChatBox {
+          position: fixed;
+          bottom: 100px;
+          right: 32px;
+          width: 350px;
+          max-width: 90vw;
+          height: 420px;
+          background: #fff;
+          border-radius: 16px;
+          box-shadow: 0 2px 32px rgba(0,0,0,0.35);
+          display: none;
+          flex-direction: column;
+          z-index: 1060;
+        }
+        #floatingChatBox.open { display: flex; }
+        #chatHeader {
+          background: #0d6efd;
+          color: white;
+          padding: 0.7rem 1rem;
+          border-top-left-radius: 16px;
+          border-top-right-radius: 16px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        #chatHeader button {
+          background: transparent; border: none; color: white; font-size: 1.2rem;
+        }
+        #chatWindow {
+          flex: 1;
+          padding: 1rem;
+          overflow-y: auto;
+          background: #f8f9fa;
+          font-size: 0.98rem;
+        }
+        #chatForm {
+          padding: 0.6rem 0.7rem;
+          border-top: 1px solid #e9ecef;
+        }
+        #chatInput {
+          width: 80%;
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-light">
+  <div class="container-fluid d-flex justify-content-between align-items-center">
+    <a class="navbar-brand fw-bold" href="/api/securetrack/dashboard"><i class="bi bi-shield-lock"></i> SecureTrack</a>
+    <div class="d-flex align-items-center gap-3">
+      {% if user.is_authenticated %}
+        <a href="#" class="text-dark position-relative">
+          <i class="bi bi-chat-dots fs-5"></i>
+        </a>
+        <a href="#" class="text-dark position-relative">
+          <i class="bi bi-bell fs-5"></i>
+          <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle">
+            <span class="visually-hidden">New alerts</span>
+          </span>
+        </a>
+        <button class="btn btn-outline-light btn-sm" onclick="document.body.classList.toggle('light-mode')">🌙</button>
+        <div class="dropdown">
+          <button class="btn btn-outline-light dropdown-toggle btn-sm" type="button" id="reportsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-bar-chart-fill"></i> Reports
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="reportsDropdown">
+            <li><a class="dropdown-item" href="{% url 'export-csv' %}">📥 Download CSV</a></li>
+            <li><a class="dropdown-item" href="{% url 'export-pdf' %}">📤 Export PDF</a></li>
+            <li><a class="dropdown-item" href="{% url 'schedule-report' %}">📅 Schedule Report</a></li>
+            <li><a class="dropdown-item" href="{% url 'audit-log' %}">🔐 View Audit Logs</a></li>
+          </ul>
+        </div>
+        <div class="ms-3">
+          <a href="#" data-bs-toggle="modal" data-bs-target="#profileModal">
+            {% if user.userprofile.avatar %}
+              <img src="{{ user.userprofile.avatar.url }}" alt="Avatar" width="52" height="52" class="rounded-circle border border-light">
+            {% else %}
+              <img src="{% static 'images/default-avatar.jpeg' %}" alt="Avatar" width="52" height="52" class="rounded-circle border border-light">
+            {% endif %}
+          </a>
+        </div>
+      {% else %}
+        <a href="{% url 'login' %}" class="btn btn-outline-light btn-sm me-2">Login</a>
+        <a href="{% url 'register' %}" class="btn btn-warning btn-sm">Register</a>
+      {% endif %}
+    </div>
+  </div>
+</nav>
+
+<!-- Profile Modal -->
+<div class="modal fade" id="profileModal" tabindex="-1" aria-labelledby="profileModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-bottom">
+        <h5 class="modal-title" id="profileModalLabel">User Profile</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center">
+        {% if user.userprofile.avatar %}
+          <img src="{{ user.userprofile.avatar.url }}" width="100" class="rounded-circle border mb-3">
+        {% else %}
+          <img src="{% static 'images/default-avatar.jpeg' %}" width="100" class="rounded-circle border mb-3">
+        {% endif %}
+        <h6>{{ user.username }}</h6>
+        <p><strong>Role:</strong> {{ user.userprofile.role }}</p>
+        <p><strong>Status:</strong> {% if user.userprofile.is_approved %}Approved{% else %}Pending{% endif %}</p>
+        <button class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#editProfileModal" data-bs-dismiss="modal">Edit Profile</button>
+        <a href="{% url 'logout' %}" class="btn btn-outline-danger btn-sm ms-2">🚪 Logout</a>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Edit Profile Modal -->
+<div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-bottom">
+        <h5 class="modal-title" id="editProfileModalLabel">Edit Profile</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form method="post" action="{% url 'edit-profile' %}" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label">Upload Avatar</label>
+            <input type="file" name="avatar" class="form-control">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Role</label>
+            <input type="text" name="role" class="form-control" value="{{ user.userprofile.role }}" readonly>
+          </div>
+          <button type="submit" class="btn btn-warning w-100">Update</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container mt-5">
+  <div class="row g-4">
+    <div class="col-md-4">
+      <div class="card text-center">
+        <h6 class="fw-bold mb-3" style="color:#222">Severity Overview</h6>
+        <canvas id="severityChart" height="250"></canvas>
+        <script>
+          const ctx = document.getElementById('severityChart').getContext('2d');
+          const severityChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+              labels: {{ chart_labels|safe }},
+              datasets: [{
+                data: {{ chart_data|safe }},
+                backgroundColor: [
+                  '#ff3b30', // critical - red
+                  '#ff9500', // high - orange
+                  '#ffd60a', // medium - yellow
+                  '#32d74b'  // low - green
+                ],
+                borderWidth: 0
+              }]
+            },
+            options: {
+              cutout: '65%',
+              plugins: {
+                legend: { position: 'bottom', labels: { color: '#222', font: { family: 'San Francisco, Segoe UI, Roboto, Arial, sans-serif', size: 15 } } },
+                tooltip: {
+                  callbacks: {
+                    label: function(context) {
+                      const label = context.label || '';
+                      const value = context.raw || 0;
+                      return `${label}: ${value}`;
+                    }
+                  }
+                }
+              }
+            }
+          });
+        </script>
+      </div>
+    </div>
+    <div class="col-md-8">
+      <div class="card">
+        <form method="get" class="d-flex gap-3 align-items-end flex-wrap mb-4">
+          <div>
+            <label class="form-label" for="start_date">Start</label>
+            <input type="date" name="start_date" id="start_date" class="form-control filter-select" value="{{ request.GET.start_date }}">
+          </div>
+          <div>
+            <label class="form-label" for="end_date">End</label>
+            <input type="date" name="end_date" id="end_date" class="form-control filter-select" value="{{ request.GET.end_date }}">
+          </div>
+          <div>
+            <label class="form-label" for="severity">Severity</label>
+            <select name="severity" id="severity" class="form-select filter-select">
+              <option value="">All</option>
+              <option value="Critical" {% if selected_severity == 'Critical' %}selected{% endif %}>Critical</option>
+              <option value="High" {% if selected_severity == 'High' %}selected{% endif %}>High</option>
+              <option value="Medium" {% if selected_severity == 'Medium' %}selected{% endif %}>Medium</option>
+              <option value="Low" {% if selected_severity == 'Low' %}selected{% endif %}>Low</option>
+            </select>
+          </div>
+          <div>
+            <button class="btn btn-warning mt-3" type="submit">Apply Filters</button>
+          </div>
+        </form>
+        <div class="table-responsive rounded" style="min-height: 260px;">
+          <table class="table table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Severity</th>
+                <th>Detected At</th>
+                <th>Assigned To</th>
+                {% if user.userprofile.role in 'QA PM' %}<th>Status</th>{% endif %}
+                <th>Comments</th>
+              </tr>
+            </thead>
+            <tbody id="bug-table-body">
+              {% for bug in page_obj %}
+              <tr>
+                <td>{{ bug.id }}</td>
+                <td>{{ bug.name }}</td>
+                <td>{{ bug.vuln_type }}</td>
+                <td>
+                  <span class="badge {% if bug.severity == 'Critical' %}badge-critical{% elif bug.severity == 'High' %}badge-high{% elif bug.severity == 'Medium' %}badge-medium{% elif bug.severity == 'Low' %}badge-low{% endif %}">{{ bug.severity }}</span>
+                </td>
+                <td>{{ bug.detected_at|date:"Y-m-d H:i A" }}</td>
+                <td id="assigned-to-{{ bug.id }}">
+                  {% if user.userprofile.role in 'QA PM' %}
+                    {% if bug.assigned_to %}
+                      {{ bug.assigned_to.username }}
+                    {% else %}
+                      <a href="#" class="assign-link text-decoration-underline text-primary" data-bug-id="{{ bug.id }}">Unassigned</a>
+                    {% endif %}
+                  {% else %}
+                    {{ bug.assigned_to.username|default:"Unassigned" }}
+                  {% endif %}
+                </td>
+                {% if user.userprofile.role in 'QA PM' %}
+                <td>
+                  <form method="post" action="{% url 'update-status' bug.id %}">
+                    {% csrf_token %}
+                    <select name="status" class="form-select form-select-sm">
+                      <option value="New" {% if bug.status == "New" %}selected{% endif %}>New</option>
+                      <option value="In Progress" {% if bug.status == "In Progress" %}selected{% endif %}>In Progress</option>
+                      <option value="Resolved" {% if bug.status == "Resolved" %}selected{% endif %}>Resolved</option>
+                    </select>
+                    <button type="submit" class="btn btn-sm btn-warning mt-1">Update</button>
+                  </form>
+                </td>
+                {% endif %}
+                <td><a href="{% url 'vulnerability-detail' bug.id %}" class="btn btn-sm btn-comments">💬 View</a></td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="8">No vulnerabilities found.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <nav>
+          <ul class="pagination justify-content-center mt-3">
+            {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a></li>
+            {% endif %}
+            <li class="page-item active"><a class="page-link" href="#">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</a></li>
+            {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a></li>
+            {% endif %}
+          </ul>
+        </nav>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Assignment Modal (single, reused for all bugs) -->
+<div class="modal fade" id="assignModal" tabindex="-1" aria-labelledby="assignModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="assignModalLabel">Assign User</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <select class="form-select" id="assignUserSelect" required>
+            <option value="" disabled selected>Assign to...</option>
+            {% for assign_user in assignable_users %}
+                <option value="{{ assign_user.id }}">{{ assign_user.username }}</option>
+            {% endfor %}
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-warning" id="assignUserBtn">Assign</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== FLOATING CHATBOT BUTTON AND WIDGET (place this BEFORE </body>) ========== -->
+<button id="floatingChatBtn" title="Chat with AI">
+  💬
+</button>
+<div id="floatingChatBox">
+  <div id="chatHeader">
+    <span>AI Security Assistant</span>
+    <button id="closeChatBox" title="Close">&times;</button>
+  </div>
+  <div id="chatWindow"></div>
+  <form id="chatForm" autocomplete="off" class="d-flex mt-1 gap-1">
+    <input type="text" id="chatInput" class="form-control" placeholder="Ask me anything..." required>
+    <button class="btn btn-primary" type="submit">Send</button>
+  </form>
+</div>
+<!-- ========== END FLOATING CHATBOT WIDGET ========== -->
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+let selectedBugId = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Assignment modal logic...
+    document.querySelectorAll('.assign-link').forEach(link => {
+        link.addEventListener('click', function(e) {
+        e.preventDefault();
+            selectedBugId = this.getAttribute('data-bug-id');
+            document.getElementById('assignUserSelect').selectedIndex = 0;
+            var assignModal = new bootstrap.Modal(document.getElementById('assignModal'));
+            assignModal.show();
+        });
+    });
+
+    document.getElementById('assignUserBtn').addEventListener('click', function() {
+        const userId = document.getElementById('assignUserSelect').value;
+        if (!userId || !selectedBugId) {
+            alert('Please select a user.');
+            return;
+        }
+
+        fetch(`/assign-bug/${selectedBugId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ assigned_to: userId })
+        })
+        .then(res => {
+            if (!res.ok) throw new Error('Assignment failed');
+            return res.json();
+        })
+        .then(data => {
+            document.querySelector(`#assigned-to-${selectedBugId}`).innerHTML = data.assigned_to;
+            const assignModal = bootstrap.Modal.getInstance(document.getElementById('assignModal'));
+            assignModal.hide();
+        })
+        .catch(error => {
+            alert('Failed to assign user.');
+        });
+    });
+
+    // --- Floating Chatbot Logic ---
+    const floatingChatBtn = document.getElementById('floatingChatBtn');
+    const floatingChatBox = document.getElementById('floatingChatBox');
+    const closeChatBox = document.getElementById('closeChatBox');
+    const chatWindow = document.getElementById('chatWindow');
+    const chatForm = document.getElementById('chatForm');
+    const chatInput = document.getElementById('chatInput');
+
+    floatingChatBtn.onclick = () => {
+      floatingChatBox.classList.add('open');
+      floatingChatBtn.style.display = 'none';
+      chatInput.focus();
+    };
+
+    closeChatBox.onclick = () => {
+      floatingChatBox.classList.remove('open');
+      floatingChatBtn.style.display = '';
+    };
+
+    chatForm.onsubmit = function(e) {
+      e.preventDefault();
+      const userMsg = chatInput.value.trim();
+      if (!userMsg) return;
+      addMessage('You', userMsg, 'text-end');
+      chatInput.value = '';
+      chatInput.disabled = true;
+
+      const thinkingDiv = document.createElement('div');
+      thinkingDiv.className = 'mb-2 text-start text-muted';
+      thinkingDiv.innerHTML = `<strong>AI:</strong> 🤖 Thinking...`;
+      chatWindow.appendChild(thinkingDiv);
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+
+      fetch('/api/securetrack/chatbot/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ message: userMsg })
+      })
+      .then(res => res.json())
+      .then(data => {
+        addMessage('AI', data.reply, 'text-start text-primary');
+        chatInput.disabled = false;
+        chatInput.focus();
+      })
+      .catch(() => {
+        addMessage('AI', 'Sorry, something went wrong.', 'text-start text-danger');
+        chatInput.disabled = false;
+        chatInput.focus();
+      });
+    };
+
+    function addMessage(sender, text, alignClass) {
+      const msg = document.createElement('div');
+      msg.className = `mb-2 ${alignClass}`;
+      msg.innerHTML = `<strong>${sender}:</strong> ${text}`;
+      chatWindow.appendChild(msg);
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    // Optional: Open chat on pressing Ctrl+Shift+C
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.shiftKey && e.code === 'KeyC') {
+        floatingChatBtn.click();
+      }
+    });
+    // --- End Floating Chatbot Logic ---
+});
+</script>
+</body>
+</html>

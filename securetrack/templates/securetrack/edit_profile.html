@@ -1,0 +1,12 @@
+{% extends "securetrack/base.html" %}
+{% block content %}
+<div class="container mt-5">
+    <h4>Edit Profile</h4>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <p><strong>Current Role:</strong> {{ request.user.userprofile.role }}</p>
+        <button type="submit" class="btn btn-primary">Update Profile</button>
+    </form>
+</div>
+{% endblock %}

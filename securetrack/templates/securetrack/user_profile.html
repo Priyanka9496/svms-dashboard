@@ -1,0 +1,25 @@
+{% extends "securetrack/base.html" %}
+{% load static %}
+{% block content %}
+<div class="container mt-5 text-center">
+    <h3>User Profile</h3>
+
+    {% if profile.avatar %}
+        <img src="{{ profile.avatar.url }}" alt="Avatar" width="120" class="rounded-circle border mb-3">
+    {% else %}
+        <img src="{% static 'images/default-avatar.jpeg' %}" alt="Avatar" width="120" class="rounded-circle border mb-3">
+    {% endif %}
+
+    <h5>{{ request.user.username }}</h5>
+    <p><strong>Role:</strong> {{ profile.role }}</p>
+    <p><strong>Status:</strong>
+        {% if profile.is_approved %}
+            Approved
+        {% else %}
+            Pending Approval
+        {% endif %}
+    </p>
+
+    <a href="{% url 'edit-profile' %}" class="btn btn-outline-light mt-3">Edit Profile</a>
+</div>
+{% endblock %}
